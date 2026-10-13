@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>SecureVault</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+[hidden]{display:none!important}
+html,body{height:100%;background:#000;color:#fff;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+body{overflow:hidden}
+.screen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:24px;overflow-y:auto;opacity:0;transform:translateY(18px);pointer-events:none;transition:opacity .6s cubic-bezier(.2,.7,.2,1),transform .6s cubic-bezier(.2,.7,.2,1)}
+.screen.active{opacity:1;transform:none;pointer-events:auto}
+.vault{justify-content:flex-start;align-items:stretch;padding:20px 16px 100px;max-width:900px;margin:0 auto}
+h1{font-size:1.7rem;font-weight:600;text-align:center;line-height:1.3;max-width:460px}
+h2{font-size:1.2rem;margin-bottom:12px;word-break:break-word}
+p,small{color:#9a9a9a;line-height:1.55;text-align:center;max-width:440px}
+small{display:block;font-size:.8rem}
+.vault small{text-align:left}
+.sw{display:inline-block;transition:opacity .35s,transform .35s}
+.sw.out{opacity:0;transform:translateY(-10px)}
+.logo{width:84px;height:84px;border:2px solid #fff;border-radius:24px;display:grid;place-items:center;font-weight:700;font-size:1.6rem;letter-spacing:2px;margin-bottom:22px;animation:pulse 2.6s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,255,255,.25)}50%{box-shadow:0 0 0 16px rgba(255,255,255,0)}}
+input{width:100%;max-width:340px;min-height:52px;background:#111;border:1px solid #333;color:#fff;border-radius:14px;padding:14px 16px;font-size:1rem;margin-top:12px;outline:none}
+input:focus{border-color:#fff}
+input[type=checkbox]{width:auto;min-height:auto;margin:0 8px 0 0}
+input[type=file]{width:auto;max-width:none;margin:0;padding:6px;font-size:.9rem}
+label{color:#bbb;font-size:.95rem;margin-top:14px;display:flex;align-items:center;flex-wrap:wrap;gap:4px}
+.btn{min-height:52px;padding:0 26px;border-radius:14px;border:1px solid #fff;background:#fff;color:#000;font-size:1rem;font-weight:600;cursor:pointer;margin-top:16px;transition:transform .2s,opacity .2s}
+.btn:active{transform:scale(.97)}
+.btn:disabled{opacity:.35}
+.btn.ghost{background:transparent;color:#fff;border-color:#333}
+.btn.pulse{animation:pulse 1.8s infinite}
+.err{display:none;background:#1a1a1a;border:1px solid #555;border-radius:10px;padding:10px 14px;margin-top:12px;font-size:.9rem;max-width:400px;text-align:center;color:#eee}
+.err.show{display:block}
+.row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:14px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.brand{display:flex;align-items:center;gap:12px}
+.mini-logo{width:42px;height:42px;border:2px solid #fff;border-radius:12px;display:grid;place-items:center;font-weight:700;font-size:.9rem;flex:none}
+.iconbtn{background:#111;border:1px solid #333;color:#fff;border-radius:12px;width:46px;height:46px;font-size:1.1rem;cursor:pointer}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
+.chip{background:#111;border:1px solid #333;color:#bbb;border-radius:999px;padding:10px 14px;cursor:pointer;min-height:44px;font-size:.92rem}
+.chip.on{background:#fff;color:#000;border-color:#fff}
+.storage{margin:4px 0}
+.bar{height:6px;background:#222;border-radius:4px;overflow:hidden;margin-top:6px}
+.bar i{display:block;height:100%;width:0;background:#fff;transition:width .6s}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-top:12px}
+.card{background:#0c0c0c;border:1px solid #222;border-radius:16px;padding:14px;cursor:pointer;display:flex;flex-direction:column;gap:6px;transition:transform .25s,border-color .25s;animation:in .4s both}
+.card:hover{border-color:#555;transform:translateY(-2px)}
+.card b{word-break:break-all;font-size:.95rem;font-weight:600}
+.card small{text-align:left}
+.ico{width:40px;height:40px;border-radius:10px;background:#1a1a1a;display:grid;place-items:center;font-size:.7rem;font-weight:700;color:#ccc}
+.acts{display:flex;gap:6px;margin-top:auto}
+.mini{width:40px;height:40px;border-radius:10px;background:#151515;border:1px solid #333;color:#888;cursor:pointer;font-size:1rem}
+.mini.on{color:#000;background:#fff;border-color:#fff}
+.fab{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));min-height:54px;padding:0 22px;border-radius:999px;background:#fff;color:#000;border:none;font-weight:700;font-size:1rem;cursor:pointer;box-shadow:0 8px 30px rgba(255,255,255,.15)}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;pointer-events:none;transition:opacity .3s;z-index:9}
+.modal.on{opacity:1;pointer-events:auto}
+.sheet{background:#0a0a0a;border:1px solid #333;border-radius:20px;padding:22px;width:100%;max-width:560px;max-height:90vh;overflow:auto;position:relative;transform:scale(.97);transition:transform .3s}
+.modal.on .sheet{transform:none}
+.sheet img,.sheet video,.sheet iframe{width:100%;max-height:60vh;border-radius:12px;background:#000;border:0}
+.sheet p{text-align:left;margin:8px 0}
+.sheet label{margin:12px 0}
+.x{position:absolute;right:12px;top:8px;background:none;border:0;color:#fff;font-size:1.8rem;cursor:pointer}
+.line{border-bottom:1px solid #222;padding:10px 0;display:flex;flex-direction:column;gap:6px;text-align:left}
+.line small{text-align:left}
+.sum{margin-top:14px;max-width:400px;width:100%}
+.hint{font-size:.8rem}
+@keyframes in{from{opacity:0;transform:translateY(8px)}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+body::before{content:'';position:fixed;inset:-20%;z-index:0;background:radial-gradient(40% 40% at 20% 20%,rgba(255,255,255,.10),transparent 70%),radial-gradient(35% 35% at 80% 30%,rgba(120,120,255,.10),transparent 70%),radial-gradient(40% 40% at 50% 90%,rgba(255,255,255,.07),transparent 70%);animation:aur 18s ease-in-out infinite alternate;pointer-events:none}
+@keyframes aur{to{transform:translate3d(6%,4%,0) scale(1.15) rotate(8deg)}}
+.screen{z-index:1}
+h1{background:linear-gradient(180deg,#fff,#8a8a8a);-webkit-background-clip:text;background-clip:text;color:transparent;font-size:2rem;letter-spacing:-.5px}
+.logo{position:relative;background:linear-gradient(145deg,#1a1a1a,#000);border:0;box-shadow:0 0 40px rgba(255,255,255,.12);overflow:visible}
+.logo::before{content:'';position:absolute;inset:-3px;border-radius:27px;padding:2px;background:conic-gradient(from 0deg,#fff,#222,#fff,#222,#fff);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;animation:spin 5s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.btn{position:relative;overflow:hidden;box-shadow:0 6px 24px rgba(255,255,255,.12)}
+.btn::after{content:'';position:absolute;top:0;left:-60%;width:40%;height:100%;background:linear-gradient(90deg,transparent,rgba(120,120,120,.35),transparent);transform:skewX(-20deg);animation:shine 3.5s infinite}
+.btn.ghost::after{display:none}
+.btn.ghost{background:rgba(255,255,255,.04);box-shadow:none;backdrop-filter:blur(8px)}
+@keyframes shine{0%,60%{left:-60%}100%{left:130%}}
+input{background:rgba(255,255,255,.05);backdrop-filter:blur(8px);transition:border-color .3s,box-shadow .3s}
+input:focus{box-shadow:0 0 0 4px rgba(255,255,255,.08)}
+.vault>header{position:sticky;top:0;z-index:5;background:rgba(0,0,0,.6);backdrop-filter:blur(16px);padding:10px 4px;margin:-10px -4px 0;border-bottom:1px solid #1c1c1c}
+.mini-logo{background:linear-gradient(145deg,#222,#000);box-shadow:0 0 20px rgba(255,255,255,.15)}
+.chip{transition:all .25s;backdrop-filter:blur(8px);background:rgba(255,255,255,.05)}
+.chip:hover{border-color:#777;transform:translateY(-1px)}
+.chip.on{box-shadow:0 0 20px rgba(255,255,255,.25)}
+.grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px}
+.card{padding:0;overflow:hidden;gap:0;background:#0a0a0a;border-radius:20px;animation:rise .55s cubic-bezier(.2,.8,.2,1) backwards;position:relative}
+.card:hover{transform:translateY(-4px) scale(1.02);border-color:#666;box-shadow:0 14px 40px rgba(255,255,255,.08)}
+@keyframes rise{from{opacity:0;transform:translateY(22px) scale(.95)}to{opacity:1;transform:none}}
+.thumb{position:relative;aspect-ratio:1;background:linear-gradient(135deg,#161616,#050505);display:grid;place-items:center;overflow:hidden}
+.thumb img{width:100%;height:100%;object-fit:cover;transition:transform .6s;max-height:none;border-radius:0}
+.card:hover .thumb img{transform:scale(1.12)}
+.thumb::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,transparent 55%,rgba(0,0,0,.75))}
+.thumb .ico{width:64px;height:64px;border-radius:18px;font-size:.9rem;border:1px solid #333}
+.play{position:absolute;z-index:2;width:46px;height:46px;border-radius:50%;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);border:1px solid #fff;display:grid;place-items:center;font-size:.9rem;left:50%;top:50%;transform:translate(-50%,-50%)}
+.card .acts{position:absolute;z-index:3;top:8px;right:8px;margin:0;opacity:1;transform:none;gap:5px}
+.card:hover .acts,.card .mini.on{opacity:1}
+.card .acts:has(.on){opacity:1}
+@media (hover:none){.card .acts{opacity:1;transform:none}}
+.mini{background:rgba(0,0,0,.6);backdrop-filter:blur(6px);width:36px;height:36px}
+.meta{padding:10px 12px 12px;display:flex;flex-direction:column;gap:3px}
+.meta b{font-size:.88rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fab{animation:float 3s ease-in-out infinite}
+@keyframes float{50%{transform:translateY(-5px)}}
+.reckey{font-family:ui-monospace,Menlo,monospace;font-size:1.05rem;letter-spacing:1px;background:#0d0d0d;border:1px dashed #666;border-radius:14px;padding:16px;margin-top:14px;text-align:center;user-select:all;word-break:break-all}
+.sheet{background:rgba(10,10,10,.9);backdrop-filter:blur(20px)}
+.bar i{background:linear-gradient(90deg,#555,#fff)}
+.screen.active>*{animation:up .8s cubic-bezier(.2,.8,.2,1) backwards}
+.screen.active>*:nth-child(2){animation-delay:.08s}.screen.active>*:nth-child(3){animation-delay:.16s}.screen.active>*:nth-child(4){animation-delay:.24s}.screen.active>*:nth-child(5){animation-delay:.32s}.screen.active>*:nth-child(6){animation-delay:.4s}.screen.active>*:nth-child(7){animation-delay:.48s}
+@keyframes up{from{opacity:0;transform:translateY(26px) scale(.97);filter:blur(6px)}to{opacity:1;transform:none;filter:none}}
+.btn:hover{transform:translateY(-2px);box-shadow:0 10px 34px rgba(255,255,255,.22)}
+.thumb{background:linear-gradient(110deg,#111 30%,#222 50%,#111 70%);background-size:200% 100%;animation:sh 1.6s infinite}
+@keyframes sh{to{background-position:-200% 0}}
+.mini{width:40px;height:40px;font-size:1rem}
+.mini.on{background:#fff;color:#000;box-shadow:0 0 18px rgba(255,255,255,.6)}
+.mini.pop{animation:pop .5s}
+@keyframes pop{30%{transform:scale(1.6) rotate(-12deg)}100%{transform:none}}
+.card.out{animation:outc .4s forwards}
+@keyframes outc{to{opacity:0;transform:scale(.6) rotate(-5deg)}}
+#toast{position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);background:#fff;color:#000;padding:12px 22px;border-radius:999px;font-weight:600;opacity:0;pointer-events:none;transition:.35s;z-index:40;white-space:nowrap;box-shadow:0 10px 40px rgba(255,255,255,.2)}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+#dlg .sheet{max-width:400px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:14px}
+.stat{background:rgba(255,255,255,.05);border:1px solid #222;border-radius:16px;padding:12px 4px;text-align:center;transition:transform .3s,border-color .3s}
+.stat:hover{transform:translateY(-3px);border-color:#666}
+.stat b{display:block;font-size:1.5rem}
+.stat small{text-align:center;font-size:.7rem}
+@media(max-width:600px){.modal{align-items:flex-end;padding:0}.sheet{border-radius:24px 24px 0 0;transform:translateY(60px)}.grid{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+
+<section id="s0" class="screen active">
+  <div class="logo">SV</div>
+  <h1>Merhaba, <span id="gname" class="sw">…</span></h1>
+  <p>SecureVault’a hoş geldiniz. Birkaç adımda kasanızı hazırlayacağız.</p>
+  <button class="btn" data-go="s1">Devam</button>
+</section>
+
+<section id="s1" class="screen">
+  <h1>Adınız Nedir?</h1>
+  <input id="nameIn" maxlength="30" placeholder="Adınız" autocomplete="given-name">
+  <button class="btn" id="nameBtn" disabled>Devam</button>
+</section>
+
+<section id="s2" class="screen">
+  <h1>Kimin fotoğraflarınızı görmeye çalıştığını yakalayın.</h1>
+  <p>SecureVault, özel dosyalarınızı korumanıza ve başarısız kasa girişimlerini takip etmenize yardımcı olur.</p>
+  <button class="btn" data-go="s3">Devam</button>
+</section>
+
+<section id="s3" class="screen">
+  <h1>Kamera erişimine izin verin.</h1>
+  <p>Kamerayı, açıkça etkinleştirdiğiniz başarısız giriş fotoğrafı özelliği için kullanabilirsiniz. Etkinleştirirseniz, yanlış parola ya da PIN girildiğinde kameradan tek bir kare çekilmeye çalışılır. Fotoğraflar cihazınızda şifrelenir ve yalnızca kasa açıldıktan sonra görüntülenir. Bu özelliği istediğiniz zaman kapatabilirsiniz.</p>
+  <button class="btn" id="camBtn">Kamerayı Etkinleştir</button>
+  <button class="btn ghost" data-go="s4">Şimdilik Atla</button>
+  <div class="err" id="camErr"></div>
+</section>
+
+<section id="s4" class="screen">
+  <h1>Gizlilik için birkaç izin vermeniz gerekecek.</h1>
+  <p>Fotoğraflarınızı ve dosyalarınızı kasanıza ekleyebilmek için dosya seçme iznini kullanın.</p>
+  <button class="btn" id="fileBtn">Dosya Seç</button>
+  <small id="pendTxt"></small>
+  <button class="btn ghost" data-go="s5">Devam</button>
+  <input id="pickIn" type="file" multiple hidden>
+</section>
+
+<section id="s5" class="screen">
+  <h1>Kasa Parolası Oluşturun</h1>
+  <p>Parola, dosyalarınızı şifrelemek için kullanılır ve sunucuya gönderilmez. Düz metin olarak saklanmaz. Parolanızı unutursanız kasanıza erişemezsiniz.</p>
+  <input id="pw1" type="password" placeholder="Parola (en az 8 karakter)" autocomplete="new-password">
+  <input id="pw2" type="password" placeholder="Parolayı tekrarlayın" autocomplete="new-password">
+  <label><input id="usePin" type="checkbox"> İsteğe bağlı PIN oluştur</label>
+  <div id="pinBox" hidden>
+    <input id="pin1" inputmode="numeric" maxlength="6" placeholder="PIN (4–6 rakam)">
+    <input id="pin2" inputmode="numeric" maxlength="6" placeholder="PIN’i tekrarlayın">
+  </div>
+  <button class="btn" id="createBtn">Kasayı Oluştur</button>
+  <div class="err" id="pwErr"></div>
+</section>
+
+<section id="s6" class="screen">
+  <div class="logo">SV</div>
+  <h1>Hoş Geldin, <span id="wname"></span></h1>
+  <p>Kasanız hazır. Dosyalarınız bu cihazda şifreli olarak saklanır.</p>
+  <div class="reckey" id="recKey"></div>
+  <small>KURTARMA ANAHTARI: Parolanızı unutursanız kasanıza yalnızca bu anahtarla yeniden erişebilirsiniz. Güvenli bir yere kaydedin, tekrar gösterilmeyecek.</small>
+  <div class="row"><button class="btn ghost" id="recCopy">Kopyala</button><button class="btn ghost" id="recDl">İndir (.txt)</button></div>
+  <label><input type="checkbox" id="recOk"> Anahtarı kaydettim</label>
+  <button class="btn pulse" id="openBtn" disabled>Kasamı Aç</button>
+</section>
+
+<section id="lock" class="screen">
+  <div class="logo">SV</div>
+  <h1>Kasa Kilitli</h1>
+  <div class="sum" id="sum"></div>
+  <input id="lockIn" type="password" placeholder="Kasa parolası" autocomplete="current-password">
+  <button class="btn" id="lockBtn">Kilidi Aç</button>
+  <button class="btn ghost" id="pinTog" hidden>PIN ile aç</button>
+  <button class="btn ghost" id="forgotBtn">Şifre Kurtar</button>
+  <div class="err" id="lockErr"></div>
+</section>
+
+<section id="vault" class="screen vault">
+  <header class="top">
+    <div class="brand">
+      <div class="mini-logo">SV</div>
+      <div><b>SecureVault</b><small id="uname"></small></div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span class="iconbtn" title="Kasa açık" style="display:grid;place-items:center;cursor:default">🔓</span>
+      <button class="iconbtn" id="setBtn" title="Ayarlar">⚙</button>
+      <button class="iconbtn" id="lockNow" title="Kasayı kilitle">🔒</button>
+    </div>
+  </header>
+  <div class="stats"><div class="stat"><b id="st-foto">0</b><small>Fotoğraf</small></div><div class="stat"><b id="st-video">0</b><small>Video</small></div><div class="stat"><b id="st-dosya">0</b><small>Dosya</small></div><div class="stat"><b id="st-sec">0</b><small>Gizli</small></div></div>
+  <input id="search" type="search" placeholder="Dosya ara" style="margin-top:14px">
+  <div class="chips" id="cats">
+    <button class="chip on" data-cat="all" data-l="Tümü">Tümü</button>
+    <button class="chip" data-cat="foto" data-l="Fotoğraflar">Fotoğraflar</button>
+    <button class="chip" data-cat="video" data-l="Videolar">Videolar</button>
+    <button class="chip" data-cat="dosya" data-l="Dosyalar">Dosyalar</button>
+  </div>
+  <div class="chips">
+    <button class="chip" id="favChip">★ Favoriler</button>
+    <button class="chip" id="secChip">◉ Gizli Albüm</button>
+    <button class="chip" id="histBtn">Güvenlik Geçmişi</button>
+  </div>
+  <div class="storage">
+    <small>Kullanılan depolama: <b id="usedTxt" style="color:#fff">0 KB</b></small>
+    <div class="bar"><i id="bar"></i></div>
+  </div>
+  <div class="grid" id="grid"></div>
+  <button class="fab" id="addBtn">+ Yeni Dosya</button>
+  <input id="addIn" type="file" multiple hidden>
+</section>
+
+<div class="modal" id="modal"><div class="sheet"><button class="x" id="mx" aria-label="Kapat">×</button><div id="mbody"></div></div></div>
+
+<script>
+const $=s=>document.querySelector(s);
+const toast=t=>{let e=document.getElementById('toast');if(!e){e=document.createElement('div');e.id='toast';document.body.append(e)}e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),2200)};
+function ask(text,ok='Evet',single=false){return new Promise(res=>{
+  let d=document.getElementById('dlg');
+  if(!d){d=document.createElement('div');d.id='dlg';d.className='modal';d.style.zIndex=20;document.body.append(d)}
+  const done=v=>{d.classList.remove('on');res(v)};
+  const s=document.createElement('div');s.className='sheet';
+  const p=document.createElement('p');p.style.cssText='text-align:center;margin:8px auto 4px;font-size:1rem;color:#ddd';p.textContent=text;
+  const row=document.createElement('div');row.className='row';
+  const b1=document.createElement('button');b1.className='btn';b1.textContent=ok;b1.onclick=()=>done(true);
+  if(!single){const b2=document.createElement('button');b2.className='btn ghost';b2.textContent='Vazgeç';b2.onclick=()=>done(false);row.append(b2)}
+  row.append(b1);s.append(p,row);d.replaceChildren(s);d.classList.add('on');
+})}
+window.alert=t=>{ask(String(t),'Tamam',true)};
+function countTo(el,n){const from=+el.dataset.v||0;el.dataset.v=n;if(from===n){el.textContent=n;return}const t0=performance.now();(function s(t){const p=Math.min(1,(t-t0)/600);el.textContent=Math.round(from+(n-from)*p);if(p<1)requestAnimationFrame(s)})(t0)}
+async function toggleFav(f,btn){
+  f.fav=!f.fav;
+  try{await savef(f)}catch{f.fav=!f.fav;return toast('Kaydedilemedi')}
+  if(btn){btn.classList.toggle('on',f.fav);btn.classList.remove('pop');void btn.offsetWidth;btn.classList.add('pop')}
+  toast(f.fav?'★ Favorilere eklendi':'Favorilerden çıkarıldı');
+  if(flt.fav&&!f.fav)renderVault();
+}
+async function toggleSec(f,btn){
+  f.sec=!f.sec;
+  try{await savef(f)}catch{f.sec=!f.sec;return toast('Kaydedilemedi')}
+  if(btn){btn.classList.toggle('on',f.sec);btn.classList.remove('pop');void btn.offsetWidth;btn.classList.add('pop')}
+  toast(f.sec?'Gizli albüme eklendi':'Gizli albümden çıkarıldı');
+  if(flt.sec&&!f.sec)renderVault();
+}
+async function deleteFile(f,el){
+  if(!await ask(`"${f.name}" kalıcı olarak silinsin mi?`,'Sil'))return false;
+  try{await del('files',f.id)}catch{toast('Silinemedi');return false}
+  files=files.filter(x=>x!==f);
+  if(f.turl)URL.revokeObjectURL(f.turl);
+  if(el){el.classList.add('out');setTimeout(renderVault,420)}else renderVault();
+  toast('Dosya silindi');
+  return true;
+}
+const E=new TextEncoder(),D=new TextDecoder();
+const DANGER=/\.(exe|bat|cmd|com|scr|msi|ps1|sh|js|jar|apk|html?|vbs|reg)$/i;
+const MAX=200*1024*1024;
+const ICON={foto:'IMG',video:'VID',dosya:'DOC'};
+let meta=JSON.parse(localStorage.getItem('sv_meta')||'null');
+let K=null,files=[],lockMode='pw',mClose=null,dbc=null;
+let setup={name:'',cam:false,pending:[]};
+let flt={cat:'all',fav:false,sec:false};
+
+/* ---------- yardımcılar ---------- */
+const rnd=n=>crypto.getRandomValues(new Uint8Array(n));
+const hex=u=>[...u].map(b=>b.toString(16).padStart(2,'0')).join('');
+const b64=b=>{const u=new Uint8Array(b);let s='';for(let i=0;i<u.length;i+=32768)s+=String.fromCharCode(...u.subarray(i,i+32768));return btoa(s)};
+const unb=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+const save=()=>localStorage.setItem('sv_meta',JSON.stringify(meta));
+const fmt=n=>n<1048576?(n/1024).toFixed(0)+' KB':(n/1048576).toFixed(1)+' MB';
+const h=(t,a={},...c)=>{const e=document.createElement(t);Object.assign(e,a);e.append(...c.flat().filter(x=>x!=null));return e};
+const when=t=>new Date(t).toLocaleString('tr-TR');
+const catOf=m=>m.startsWith('image/')?'foto':m.startsWith('video/')?'video':'dosya';
+const msg=(id,t)=>{const e=$('#'+id);e.textContent=t;e.classList.toggle('show',!!t)};
+const swap=(el,t)=>{el.classList.add('out');setTimeout(()=>{el.textContent=t;el.classList.remove('out')},350)};
+const dl=(url,name)=>h('a',{href:url,download:name}).click();
+const show=id=>document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('active',s.id===id));
+function openModal(nodes,onc){$('#mbody').replaceChildren(...[nodes].flat());$('#modal').classList.add('on');mClose=onc||null}
+function closeModal(){$('#modal').classList.remove('on');$('#mbody').replaceChildren();if(mClose)mClose();mClose=null}
+
+/* ---------- kriptografi (AES-GCM + PBKDF2 + RSA-OAEP) ---------- */
+const derive=(pw,salt)=>crypto.subtle.importKey('raw',E.encode(pw),'PBKDF2',false,['deriveKey']).then(b=>crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:310000,hash:'SHA-256'},b,{name:'AES-GCM',length:256},false,['encrypt','decrypt']));
+const seal=async(k,buf)=>{const iv=rnd(12);return{iv,ct:await crypto.subtle.encrypt({name:'AES-GCM',iv},k,buf)}};
+const dcr=(k,iv,ct)=>crypto.subtle.decrypt({name:'AES-GCM',iv},k,ct);
+const wrap=async(sk,buf)=>{const w=await seal(sk,buf);return{iv:b64(w.iv),ct:b64(w.ct)}};
+async function unwrap(secret,w){
+  const raw=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb(w.iv)},await derive(secret,unb(w.salt)),unb(w.ct));
+  return crypto.subtle.importKey('raw',raw,'AES-GCM',true,['encrypt','decrypt']);
+}
+async function createVault(pw,pin){
+  const salt=rnd(16);
+  K=await crypto.subtle.generateKey({name:'AES-GCM',length:256},true,['encrypt','decrypt']);
+  const raw=await crypto.subtle.exportKey('raw',K);
+  const kp=await crypto.subtle.generateKey({name:'RSA-OAEP',modulusLength:2048,publicExponent:new Uint8Array([1,0,1]),hash:'SHA-256'},true,['encrypt','decrypt']);
+  const pkcs8=await crypto.subtle.exportKey('pkcs8',kp.privateKey);
+  const pub=b64(await crypto.subtle.exportKey('spki',kp.publicKey));
+  meta={name:setup.name,cam:setup.cam,created:Date.now(),wrong:0,failures:0,lockUntil:0,log:[],pub,priv:await wrap(K,pkcs8),pw:{salt:b64(salt),...await wrap(await derive(pw,salt),raw)}};
+  if(pin){const s=rnd(16);meta.pin={salt:b64(s),...await wrap(await derive(pin,s),raw)}}
+  const rk=genRec(),rs=rnd(16);
+  meta.rec={salt:b64(rs),...await wrap(await derive(rk,rs),raw)};
+  setup.rk=rk;
+  save();
+}
+async function privKey(){return crypto.subtle.importKey('pkcs8',await dcr(K,unb(meta.priv.iv),unb(meta.priv.ct)),{name:'RSA-OAEP',hash:'SHA-256'},false,['decrypt'])}
+async function savePhoto(blob){
+  const ak=await crypto.subtle.generateKey({name:'AES-GCM',length:256},true,['encrypt','decrypt']);
+  const iv=rnd(12);
+  const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},ak,await blob.arrayBuffer());
+  const pub=await crypto.subtle.importKey('spki',unb(meta.pub),{name:'RSA-OAEP',hash:'SHA-256'},false,['encrypt']);
+  const wk=await crypto.subtle.encrypt({name:'RSA-OAEP'},pub,await crypto.subtle.exportKey('raw',ak));
+  const id=hex(rnd(12));
+  await put('photos',{id,t:Date.now(),iv,ct,wk});
+  return id;
+}
+async function photo(id){
+  const p=(await all('photos')).find(x=>x.id===id);
+  if(!p)return alert('Fotoğraf bulunamadı.');
+  const ak=await crypto.subtle.importKey('raw',await crypto.subtle.decrypt({name:'RSA-OAEP'},await privKey(),p.wk),'AES-GCM',false,['decrypt']);
+  const url=URL.createObjectURL(new Blob([await dcr(ak,p.iv,p.ct)],{type:'image/jpeg'}));
+  openModal([h('h2',{textContent:'Başarısız giriş fotoğrafı'}),h('img',{src:url})],()=>URL.revokeObjectURL(url));
+}
+
+/* ---------- IndexedDB ---------- */
+function db(){return dbc||(dbc=new Promise((res,rej)=>{const r=indexedDB.open('securevault',1);r.onupgradeneeded=()=>{r.result.createObjectStore('files',{keyPath:'id'});r.result.createObjectStore('photos',{keyPath:'id'})};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}))}
+async function tx(name,mode,fn){const d=await db();return new Promise((res,rej)=>{const t=d.transaction(name,mode);const q=fn(t.objectStore(name));t.oncomplete=()=>res(q&&q.result);t.onerror=()=>rej(t.error)})}
+const put=(s,v)=>tx(s,'readwrite',o=>o.put(v));
+const del=(s,id)=>tx(s,'readwrite',o=>o.delete(id));
+const clr=s=>tx(s,'readwrite',o=>o.clear());
+const all=s=>tx(s,'readonly',o=>o.getAll());
+const savef=f=>{const{name,turl,...r}=f;return put('files',r)};
+const genRec=()=>{const A='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';return[...rnd(20)].map(b=>A[b%32]).join('')};
+const fmtRec=s=>s.match(/.{4}/g).join('-');
+async function makeThumb(f){
+  const url=URL.createObjectURL(f);
+  try{
+    let src,w,hh;
+    if(f.type.startsWith('image/')){const im=new Image();im.src=url;await im.decode();src=im;w=im.naturalWidth;hh=im.naturalHeight}
+    else if(f.type.startsWith('video/')){
+      const v=document.createElement('video');v.muted=true;v.playsInline=true;v.preload='auto';v.src=url;
+      await new Promise((res,rej)=>{v.onloadeddata=res;v.onerror=rej;setTimeout(rej,6000)});
+      v.currentTime=Math.min(1,(v.duration||1)/2);
+      await new Promise(r=>{v.onseeked=r;setTimeout(r,2000)});
+      src=v;w=v.videoWidth;hh=v.videoHeight;
+    }else return null;
+    if(!w||!hh)return null;
+    const c=document.createElement('canvas');c.width=c.height=360;
+    const sc=Math.max(360/w,360/hh);
+    c.getContext('2d').drawImage(src,(360-w*sc)/2,(360-hh*sc)/2,w*sc,hh*sc);
+    return await new Promise(r=>c.toBlob(r,'image/jpeg',.75));
+  }catch{return null}finally{URL.revokeObjectURL(url)}
+}
+async function backfill(){
+  for(const f of files.filter(x=>!x.tCt&&(x.cat==='foto'||x.cat==='video'))){
+    try{
+      const tb=await makeThumb(new Blob([await dcr(K,f.iv,f.ct)],{type:f.mime}));
+      if(!tb)continue;
+      const t=await seal(K,await tb.arrayBuffer());
+      f.tIv=t.iv;f.tCt=t.ct;f.turl=URL.createObjectURL(tb);
+      await savef(f);
+      if($('#vault').classList.contains('active'))renderVault();
+    }catch{}
+  }
+}
+
+/* ---------- dosyalar ---------- */
+async function loadFiles(){
+  files=await Promise.all((await all('files')).map(async r=>{
+    const o={...r,name:D.decode(await dcr(K,r.nIv,r.nCt))};
+    if(r.tCt){try{o.turl=URL.createObjectURL(new Blob([await dcr(K,r.tIv,r.tCt)],{type:'image/jpeg'}))}catch{}}
+    return o;
+  }));
+  backfill();
+}
+async function addFiles(list){
+  for(const f of list){
+    if(DANGER.test(f.name)){alert(`${f.name}: bu dosya türü güvenlik nedeniyle eklenemez.`);continue}
+    if(f.size>MAX){alert(`${f.name}: 200 MB sınırını aşıyor.`);continue}
+    const d=await seal(K,await f.arrayBuffer());
+    const n=await seal(K,E.encode(f.name));
+    const r={id:hex(rnd(12)),nIv:n.iv,nCt:n.ct,iv:d.iv,ct:d.ct,mime:f.type||'application/octet-stream',size:f.size,cat:catOf(f.type||''),fav:false,sec:false,added:Date.now()};
+    const tb=await makeThumb(f);let turl;
+    if(tb){const t=await seal(K,await tb.arrayBuffer());r.tIv=t.iv;r.tCt=t.ct;turl=URL.createObjectURL(tb)}
+    await put('files',r);
+    files.push({...r,name:f.name,turl});
+  }
+}
+async function view(id){
+  const f=files.find(x=>x.id===id);
+  const url=URL.createObjectURL(new Blob([await dcr(K,f.iv,f.ct)],{type:f.mime}));
+  const media=f.cat==='foto'?h('img',{src:url}):f.cat==='video'?h('video',{src:url,controls:true,playsInline:true}):f.mime==='application/pdf'?h('iframe',{src:url}):h('p',{textContent:'Bu tür için önizleme yok. İndirebilirsiniz.'});
+  openModal([h('h2',{textContent:f.name}),media,h('div',{className:'row'},
+    h('button',{className:'btn ghost',textContent:f.fav?'★ Favoride':'☆ Favorile',onclick:async e=>{const b=e.currentTarget;await toggleFav(f);b.textContent=f.fav?'★ Favoride':'☆ Favorile'}}),
+    h('button',{className:'btn ghost',textContent:'İndir',onclick:()=>dl(url,f.name)}),
+    h('button',{className:'btn ghost',textContent:'Sil',onclick:async()=>{
+      if(await deleteFile(f))closeModal();
+    }}))],()=>URL.revokeObjectURL(url));
+}
+function card(f,i){
+  return h('div',{className:'card',style:`animation-delay:${Math.min(i,24)*45}ms`,onclick:()=>view(f.id)},
+    h('div',{className:'thumb'},
+      f.turl?h('img',{src:f.turl,alt:''}):h('div',{className:'ico',textContent:ICON[f.cat]}),
+      f.cat==='video'?h('span',{className:'play',textContent:'▶'}):null,
+      h('div',{className:'acts'},
+        h('button',{className:'mini'+(f.fav?' on':''),textContent:'★',title:'Favori',onclick:e=>{e.stopPropagation();toggleFav(f,e.currentTarget)}}),
+        h('button',{className:'mini'+(f.sec?' on':''),textContent:'◉',title:'Gizli albüm',onclick:e=>{e.stopPropagation();toggleSec(f,e.currentTarget)}}),
+        h('button',{className:'mini',textContent:'🗑',title:'Sil',onclick:e=>{e.stopPropagation();deleteFile(f,e.currentTarget.closest('.card'))}}))),
+    h('div',{className:'meta'},
+      h('b',{textContent:f.name}),
+      h('small',{textContent:`${fmt(f.size)} · ${new Date(f.added).toLocaleDateString('tr-TR')}`})));
+}
+function renderVault(){
+  const q=$('#search').value.toLowerCase();
+  $('#uname').textContent=meta.name||'';
+  const cnt={foto:files.filter(f=>f.cat==='foto').length,video:files.filter(f=>f.cat==='video').length,dosya:files.filter(f=>f.cat==='dosya').length,sec:files.filter(f=>f.sec).length};
+  for(const k in cnt)countTo($('#st-'+k),cnt[k]);
+  document.querySelectorAll('#cats button').forEach(b=>{
+    const c=b.dataset.cat;b.classList.toggle('on',flt.cat===c);
+    b.textContent=`${b.dataset.l} ${files.filter(f=>c==='all'||f.cat===c).length}`;
+  });
+  $('#favChip').classList.toggle('on',flt.fav);
+  $('#secChip').classList.toggle('on',flt.sec);
+  const list=files.filter(f=>(flt.cat==='all'||f.cat===flt.cat)&&(!flt.fav||f.fav)&&(!flt.sec||f.sec)&&f.name.toLowerCase().includes(q));
+  $('#grid').replaceChildren(...(list.length?list.map(card):[h('p',{textContent:'Bu filtrede dosya yok.'})]));
+  const used=files.reduce((s,f)=>s+f.size,0);
+  $('#usedTxt').textContent=fmt(used);
+  navigator.storage?.estimate().then(e=>$('#bar').style.width=Math.min(100,used/(e.quota||1)*100)+'%');
+}
+
+/* ---------- kamera (açık izinle, dürüst durum) ---------- */
+async function capturePhoto(){
+  if(!meta.cam)return{cam:'kapalı'};
+  let s;
+  try{s=await navigator.mediaDevices.getUserMedia({video:true})}catch{return{cam:'izin yok veya desteklenmiyor'}}
+  try{
+    const v=h('video',{muted:true,playsInline:true,srcObject:s});
+    await v.play();
+    await new Promise(r=>setTimeout(r,500));
+    const c=h('canvas',{width:v.videoWidth||640,height:v.videoHeight||480});
+    c.getContext('2d').drawImage(v,0,0,c.width,c.height);
+    const blob=await new Promise(r=>c.toBlob(r,'image/jpeg',.8));
+    return blob?{cam:'çekildi',blob}:{cam:'çekilemedi'};
+  }catch{return{cam:'çekilemedi'}}
+  finally{s.getTracks().forEach(t=>t.stop())}
+}
+
+/* ---------- kilit ---------- */
+function renderLock(){
+  const last=(meta.log||[]).slice(-3).reverse();
+  $('#sum').replaceChildren(
+    h('p',{textContent:`Toplam yanlış deneme: ${meta.wrong||0}`}),
+    ...last.map(e=>h('small',{textContent:`${when(e.t)} · ${e.m} · kamera: ${e.cam}`})),
+    h('small',{textContent:'Kasa içeriği kilit açılmadan gösterilmez.'}));
+  $('#pinTog').hidden=!meta.pin;
+  $('#pinTog').textContent=lockMode==='pw'?'PIN ile aç':'Parola ile aç';
+  $('#lockIn').placeholder=lockMode==='pw'?'Kasa parolası':'PIN';
+  $('#lockIn').inputMode=lockMode==='pw'?'text':'numeric';
+}
+async function unlock(){
+  const left=Math.max(0,(meta.lockUntil||0)-Date.now());
+  if(left)return msg('lockErr',`Çok fazla yanlış deneme. ${Math.ceil(left/1000)} saniye bekleyin.`);
+  const secret=$('#lockIn').value;
+  if(!secret)return;
+  const btn=$('#lockBtn');
+  btn.disabled=true;btn.textContent='Kontrol ediliyor…';
+  try{
+    K=await unwrap(secret,lockMode==='pw'?meta.pw:meta.pin);
+    meta.failures=0;meta.lockUntil=0;save();
+    await loadFiles();
+    msg('lockErr','');
+    show('vault');renderVault();
+  }catch{
+    K=null;
+    const cap=await capturePhoto();
+    let pid=null;
+    if(cap.blob){try{pid=await savePhoto(cap.blob)}catch{cap.cam='çekildi ama kaydedilemedi'}}
+    meta.failures=(meta.failures||0)+1;
+    meta.wrong=(meta.wrong||0)+1;
+    if(meta.failures>=5)meta.lockUntil=Date.now()+Math.min(900,30*2**(meta.failures-5))*1000;
+    meta.log=[...(meta.log||[]),{t:Date.now(),m:lockMode==='pw'?'parola':'PIN',cam:cap.cam,photo:pid}].slice(-100);
+    save();
+    msg('lockErr','Parola veya PIN hatalı. Deneme kaydedildi.');
+    renderLock();
+  }finally{
+    btn.disabled=false;btn.textContent='Kilidi Aç';
+    $('#lockIn').value='';
+  }
+}
+function lockNow(){
+  K=null;files.forEach(f=>f.turl&&URL.revokeObjectURL(f.turl));files=[];closeModal();
+  $('#grid').replaceChildren();$('#search').value='';
+  renderLock();show('lock');
+}
+
+/* ---------- güvenlik geçmişi ---------- */
+function showHist(){
+  const rows=[...(meta.log||[])].reverse().map(e=>h('div',{className:'line'},
+    h('b',{textContent:when(e.t)}),
+    h('small',{textContent:`Yöntem: ${e.m} · Kamera: ${e.cam}`}),
+    e.photo?h('button',{className:'btn ghost',textContent:'Fotoğrafı Gör',onclick:()=>photo(e.photo)}):null));
+  openModal([
+    h('h2',{textContent:'Güvenlik Geçmişi'}),
+    h('p',{textContent:`Toplam yanlış deneme: ${meta.wrong||0}`}),
+    ...(rows.length?rows:[h('p',{textContent:'Kayıt yok.'})]),
+    h('div',{className:'row'},h('button',{className:'btn ghost',textContent:'Geçmişi Temizle',onclick:async()=>{
+      if(!await ask('Güvenlik geçmişi ve kayıtlı fotoğraflar silinsin mi?','Temizle'))return;
+      meta.log=[];meta.wrong=0;save();await clr('photos');showHist();
+    }}))]);
+}
+
+/* ---------- ayarlar, yedek, sıfırlama ---------- */
+function settings(){
+  const cb=h('input',{type:'checkbox',checked:!!meta.cam,onchange:async e=>{
+    if(e.target.checked){
+      try{const s=await navigator.mediaDevices.getUserMedia({video:true});s.getTracks().forEach(t=>t.stop());meta.cam=true}
+      catch{e.target.checked=false;alert('Kamera izni verilmedi. Özellik kapalı kalacak.')}
+    }else meta.cam=false;
+    save();
+  }});
+  openModal([
+    h('h2',{textContent:'Ayarlar'}),
+    h('label',{},cb,' Başarısız giriş fotoğrafı (kamera)'),
+    h('small',{textContent:'Yalnızca bu seçenek açıkken ve yanlış giriş yapıldığında kameradan kare çekilmeye çalışılır. Çekilemezse geçmişte bu belirtilir.'}),
+    h('label',{},'Yedekten geri yükle: ',h('input',{type:'file',accept:'.json',onchange:e=>e.target.files[0]&&restore(e.target.files[0])})),
+    h('div',{className:'row'},h('button',{className:'btn',textContent:'Şifreli Yedek Al',onclick:backup})),
+    h('div',{className:'row'},h('button',{className:'btn ghost',textContent:meta.rec?'Kurtarma Anahtarını Yenile':'Kurtarma Anahtarı Oluştur',onclick:newRec})),
+    h('div',{className:'row'},h('button',{className:'btn ghost',textContent:'Tüm Kasayı Sil',onclick:reset})),
+    h('p',{className:'hint',textContent:'Şifreli yedek almadan tarayıcı verilerinizi silerseniz dosyalarınız kalıcı olarak kaybolur. Yedek, yalnızca o yedeğin parolasıyla açılabilir.'})]);
+}
+async function backup(){
+  const b={app:'SecureVault',meta,
+    files:(await all('files')).map(r=>({...r,iv:b64(r.iv),ct:b64(r.ct),nIv:b64(r.nIv),nCt:b64(r.nCt),tIv:r.tIv?b64(r.tIv):undefined,tCt:r.tCt?b64(r.tCt):undefined})),
+    photos:(await all('photos')).map(p=>({...p,iv:b64(p.iv),ct:b64(p.ct),wk:b64(p.wk)}))};
+  dl(URL.createObjectURL(new Blob([JSON.stringify(b)],{type:'application/json'})),`securevault-yedek-${Date.now()}.json`);
+}
+async function restore(file){
+  let b;
+  try{b=JSON.parse(await file.text())}catch{return alert('Dosya okunamadı.')}
+  if(b.app!=='SecureVault'||!b.meta?.pw)return alert('Geçersiz yedek dosyası.');
+  if(!await ask('Mevcut kasa bu yedekle değiştirilecek. Devam edilsin mi?','Devam'))return;
+  await clr('files');await clr('photos');
+  for(const r of b.files)await put('files',{...r,iv:unb(r.iv),ct:unb(r.ct),nIv:unb(r.nIv),nCt:unb(r.nCt),tIv:r.tIv?unb(r.tIv):undefined,tCt:r.tCt?unb(r.tCt):undefined});
+  for(const p of b.photos)await put('photos',{...p,iv:unb(p.iv),ct:unb(p.ct),wk:unb(p.wk)});
+  meta=b.meta;save();
+  location.reload();
+}
+async function reset(){
+  if(!await ask('Tüm kasa ve dosyalar bu tarayıcıdan silinecek. Emin misiniz?','Hepsini Sil'))return;
+  await clr('files');await clr('photos');
+  localStorage.removeItem('sv_meta');
+  location.reload();
+}
+
+/* ---------- kurulum akışı ---------- */
+async function createFlow(){
+  const p1=$('#pw1').value,p2=$('#pw2').value;
+  if(p1.length<8)return msg('pwErr','Parola en az 8 karakter olmalı.');
+  if(p1!==p2)return msg('pwErr','Parolalar eşleşmiyor.');
+  let pin=null;
+  if($('#usePin').checked){
+    pin=$('#pin1').value;
+    if(!/^\d{4,6}$/.test(pin))return msg('pwErr','PIN 4–6 rakamdan oluşmalı.');
+    if(pin!==$('#pin2').value)return msg('pwErr','PIN’ler eşleşmiyor.');
+  }
+  const b=$('#createBtn');
+  b.disabled=true;b.textContent='Şifreleniyor…';
+  try{
+    await createVault(p1,pin);
+    await addFiles(setup.pending);setup.pending=[];
+    msg('pwErr','');
+    $('#wname').textContent=meta.name;
+    $('#recKey').textContent=fmtRec(setup.rk);
+    show('s6');
+  }catch(e){msg('pwErr','Kasa oluşturulamadı: '+e.message)}
+  finally{b.disabled=false;b.textContent='Kasayı Oluştur'}
+}
+
+function showRec(rk){
+  const t=fmtRec(rk);
+  openModal([h('h2',{textContent:'Kurtarma Anahtarınız'}),h('div',{className:'reckey',textContent:t}),
+    h('p',{textContent:'Bunu güvenli bir yere kaydedin. Bir daha gösterilmez; eski anahtar geçersiz olur.'}),
+    h('div',{className:'row'},h('button',{className:'btn ghost',textContent:'Kopyala',onclick:()=>navigator.clipboard?.writeText(t)}))]);
+}
+async function newRec(){
+  const rk=genRec(),s=rnd(16);
+  meta.rec={salt:b64(s),...await wrap(await derive(rk,s),await crypto.subtle.exportKey('raw',K))};
+  save();showRec(rk);
+}
+function forgot(){
+  const k=h('input',{placeholder:'XXXX-XXXX-XXXX-XXXX-XXXX',autocapitalize:'characters'});
+  const p=h('input',{type:'password',placeholder:'Yeni parola (en az 8 karakter)',autocomplete:'new-password'});
+  const err=h('div',{className:'err'});
+  const say=t=>{err.textContent=t;err.classList.add('show')};
+  openModal([h('h2',{textContent:'Şifre Kurtar'}),
+    h('p',{textContent:'Parolanız hiçbir yerde saklanmadığı için gösterilemez. Kasa oluşturulurken verilen kurtarma anahtarını girerek dosyalarınızı kaybetmeden yeni bir parola belirleyebilirsiniz.'}),
+    k,p,err,
+    h('div',{className:'row'},h('button',{className:'btn',textContent:'Parolayı Sıfırla',onclick:async()=>{
+      if(!meta.rec)return say('Bu kasa için kurtarma anahtarı oluşturulmamış.');
+      if(p.value.length<8)return say('Yeni parola en az 8 karakter olmalı.');
+      try{
+        const key=await unwrap(k.value.toUpperCase().replace(/[^A-Z0-9]/g,''),meta.rec);
+        const raw=await crypto.subtle.exportKey('raw',key),s=rnd(16);
+        meta.pw={salt:b64(s),...await wrap(await derive(p.value,s),raw)};
+        meta.failures=0;meta.lockUntil=0;save();
+        K=key;await loadFiles();closeModal();show('vault');renderVault();
+      }catch{say('Kurtarma anahtarı hatalı.')}
+    }})),
+    h('div',{className:'row'},h('button',{className:'btn ghost',textContent:'Anahtarım yok: Kasayı Sil ve Sıfırla',onclick:reset}))]);
+}
+function wire(){
+  $('#forgotBtn').onclick=forgot;
+  $('#recOk').onchange=e=>$('#openBtn').disabled=!e.target.checked;
+  $('#recCopy').onclick=()=>navigator.clipboard?.writeText($('#recKey').textContent);
+  $('#recDl').onclick=()=>dl(URL.createObjectURL(new Blob(['SecureVault kurtarma anahtari: '+$('#recKey').textContent+'\n'],{type:'text/plain'})),'securevault-kurtarma-anahtari.txt');
+  document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>show(b.dataset.go));
+  $('#nameIn').oninput=e=>$('#nameBtn').disabled=!e.target.value.trim();
+  $('#nameBtn').onclick=()=>{setup.name=$('#nameIn').value.trim().slice(0,30);swap($('#gname'),setup.name);show('s2')};
+  $('#camBtn').onclick=async()=>{
+    try{const s=await navigator.mediaDevices.getUserMedia({video:true});s.getTracks().forEach(t=>t.stop());setup.cam=true;show('s4')}
+    catch{msg('camErr','Kamera izni verilmedi ya da tarayıcınız kamerayı desteklemiyor. Bu özellik kapalı kalacak; ayarlardan daha sonra açabilirsiniz.')}
+  };
+  $('#fileBtn').onclick=()=>$('#pickIn').click();
+  $('#pickIn').onchange=e=>{setup.pending=[...setup.pending,...e.target.files];$('#pendTxt').textContent=`${setup.pending.length} dosya seçildi. Kasa oluşturulunca şifrelenerek eklenecek.`};
+  $('#usePin').onchange=e=>$('#pinBox').hidden=!e.target.checked;
+  $('#createBtn').onclick=createFlow;
+  $('#openBtn').onclick=()=>{show('vault');renderVault()};
+  $('#lockBtn').onclick=unlock;
+  $('#lockIn').onkeydown=e=>{if(e.key==='Enter')unlock()};
+  $('#pinTog').onclick=()=>{lockMode=lockMode==='pw'?'pin':'pw';renderLock()};
+  $('#mx').onclick=closeModal;
+  $('#modal').onclick=e=>{if(e.target.id==='modal')closeModal()};
+  $('#addBtn').onclick=()=>$('#addIn').click();
+  $('#addIn').onchange=async e=>{await addFiles([...e.target.files]);e.target.value='';renderVault()};
+  $('#search').oninput=renderVault;
+  document.querySelectorAll('#cats button').forEach(b=>b.onclick=()=>{flt.cat=b.dataset.cat;renderVault()});
+  $('#favChip').onclick=()=>{flt.fav=!flt.fav;renderVault()};
+  $('#secChip').onclick=()=>{flt.sec=!flt.sec;renderVault()};
+  $('#histBtn').onclick=showHist;
+  $('#setBtn').onclick=settings;
+  $('#lockNow').onclick=lockNow;
+  setInterval(()=>{
+    if(!meta)return;
+    const l=Math.max(0,(meta.lockUntil||0)-Date.now());
+    if($('#lock').classList.contains('active')){
+      $('#lockBtn').disabled=l>0;
+      if(l>0)msg('lockErr',`Çok fazla yanlış deneme. ${Math.ceil(l/1000)} saniye bekleyin.`);
+    }
+  },1000);
+  if(meta){renderLock();show('lock')}else show('s0');
+}
+
+if(!(crypto&&crypto.subtle&&window.indexedDB)){
+  document.body.innerHTML='<section class="screen active"><h1>Tarayıcı desteklenmiyor</h1><p>SecureVault, Web Crypto ve IndexedDB destekleyen güncel bir tarayıcı gerektirir. Sayfayı HTTPS üzerinden açmayı deneyin.</p></section>';
+}else wire();
+</script>
+</body>
+</html>

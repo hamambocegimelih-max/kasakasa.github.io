@@ -130,6 +130,12 @@ input:focus{box-shadow:0 0 0 4px rgba(255,255,255,.08)}
 .stat b{display:block;font-size:1.5rem}
 .stat small{text-align:center;font-size:.7rem}
 @media(max-width:600px){.modal{align-items:flex-end;padding:0}.sheet{border-radius:24px 24px 0 0;transform:translateY(60px)}.grid{grid-template-columns:repeat(2,1fr)}}
+.capgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-top:10px}
+.cap{background:#0d0d0d;border:1px solid #2a2a2a;border-radius:16px;overflow:hidden;animation:rise .5s backwards}
+.cap img{display:block;width:100%;aspect-ratio:1;object-fit:cover;border-radius:0;max-height:none}
+.cap small{padding:8px 10px;display:block}
+.nocap{aspect-ratio:1;display:grid;place-items:center;color:#777;font-size:.85rem;background:#111}
+.alertbox{border:1px solid #fff;border-radius:14px;padding:12px;margin:8px 0;text-align:center;animation:pulse 2s infinite}
 </style>
 </head>
 <body>
@@ -230,6 +236,7 @@ input:focus{box-shadow:0 0 0 4px rgba(255,255,255,.08)}
     <button class="chip" id="favChip">★ Favoriler</button>
     <button class="chip" id="secChip">◉ Gizli Albüm</button>
     <button class="chip" id="histBtn">Güvenlik Geçmişi</button>
+    <button class="chip" id="capChip">📸 Yakalananlar</button>
   </div>
   <div class="storage">
     <small>Kullanılan depolama: <b id="usedTxt" style="color:#fff">0 KB</b></small>
@@ -340,6 +347,36 @@ async function savePhoto(blob){
   const id=hex(rnd(12));
   await put('photos',{id,t:Date.now(),iv,ct,wk});
   return id;
+}
+async function photoUrl(id){
+  const p=(await all('photos')).find(x=>x.id===id);
+  if(!p)return null;
+  const ak=await crypto.subtle.importKey('raw',await crypto.subtle.decrypt({name:'RSA-OAEP'},await privKey(),p.wk),'AES-GCM',false,['decrypt']);
+  return URL.createObjectURL(new Blob([await dcr(ak,p.iv,p.ct)],{type:'image/jpeg'}));
+}
+async function gallery(entries,title,intro,warn){
+  const urls=[],items=[];
+  for(const [i,e] of entries.entries()){
+    let u=null;
+    if(e.photo){try{u=await photoUrl(e.photo)}catch{}}
+    if(u)urls.push(u);
+    const c=h('div',{className:'cap',style:`animation-delay:${i*80}ms`},
+      u?h('img',{src:u,alt:'Yakalanan fotoğraf'}):h('div',{className:'nocap',textContent:'Fotoğraf yok'}),
+      h('small',{textContent:`${when(e.t)} · ${e.m} · kamera: ${e.cam}`}));
+    items.push(c);
+  }
+  const nodes=[h('h2',{textContent:title})];
+  if(warn)nodes.push(h('div',{className:'alertbox',textContent:warn}));
+  if(intro)nodes.push(h('p',{textContent:intro}));
+  nodes.push(h('div',{className:'capgrid'},...items));
+  openModal(nodes,()=>urls.forEach(u=>URL.revokeObjectURL(u)));
+}
+function alertNew(){
+  const fresh=(meta.log||[]).filter(e=>!e.seen);
+  if(!fresh.length)return;
+  fresh.forEach(e=>e.seen=true);save();
+  const n=fresh.filter(e=>e.photo).length;
+  gallery(fresh.slice().reverse(),'⚠ Kasanıza erişim denendi',n?`${n} fotoğraf yakalandı. Tümünü "Yakalananlar" bölümünde görebilirsiniz.`:'Bu denemelerde fotoğraf çekilemedi; nedeni her kayıtta yazıyor.',`Siz yokken ${fresh.length} yanlış giriş denemesi yapıldı.`);
 }
 async function photo(id){
   const p=(await all('photos')).find(x=>x.id===id);
@@ -497,6 +534,7 @@ async function unlock(){
     await loadFiles();
     msg('lockErr','');
     show('vault');renderVault();
+    setTimeout(alertNew,700);
   }catch{
     K=null;
     const cap=await capturePhoto();
@@ -505,7 +543,7 @@ async function unlock(){
     meta.failures=(meta.failures||0)+1;
     meta.wrong=(meta.wrong||0)+1;
     if(meta.failures>=5)meta.lockUntil=Date.now()+Math.min(900,30*2**(meta.failures-5))*1000;
-    meta.log=[...(meta.log||[]),{t:Date.now(),m:lockMode==='pw'?'parola':'PIN',cam:cap.cam,photo:pid}].slice(-100);
+    meta.log=[...(meta.log||[]),{t:Date.now(),m:lockMode==='pw'?'parola':'PIN',cam:cap.cam,photo:pid,seen:false}].slice(-100);
     save();
     msg('lockErr','Parola veya PIN hatalı. Deneme kaydedildi.');
     renderLock();
@@ -664,6 +702,11 @@ function wire(){
   $('#favChip').onclick=()=>{flt.fav=!flt.fav;renderVault()};
   $('#secChip').onclick=()=>{flt.sec=!flt.sec;renderVault()};
   $('#histBtn').onclick=showHist;
+  $('#capChip').onclick=()=>{
+    const c=(meta.log||[]).filter(e=>e.photo).reverse();
+    if(!c.length)return openModal([h('h2',{textContent:'Yakalananlar'}),h('p',{textContent:'Henüz yakalanan fotoğraf yok. Kamera özelliği açıkken yanlış giriş yapılırsa fotoğraflar burada görünür.'})]);
+    gallery(c,'Yakalananlar',`${c.length} fotoğraf`);
+  };
   $('#setBtn').onclick=settings;
   $('#lockNow').onclick=lockNow;
   setInterval(()=>{
